@@ -9,11 +9,70 @@ var p2p_port = process.env.P2P_PORT || 6001;
 var initialPeers = process.env.PEERS ? process.env.PEERS.split(',') : [];
 
 var calculateHashForBlock = (block) => {
-    return calculateHash(block.index, block.previousHash, block.timestamp, block.data);
+    return calculateHash(block.index, block.previousHash, block.timestamp, block.data, block.nonce);
 };
 
-var calculateHash = (index, previousHash, timestamp, data) => {
-    return CryptoJS.SHA256(index + previousHash + timestamp + data).toString();
+var calculateHash = (index, previousHash, timestamp, data, nonce) => {
+    return CryptoJS.SHA256(index + previousHash + timestamp + data + nonce).toString();
+};
+
+// can be used to calculate a difficulty
+var throttle = 10000000000;
+var target = Math.floor(Math.pow(2, 64)/throttle);
+
+var getGuess = (hash) => {
+    return parseInt(hash.substring(0, 12), 16)
+};
+
+var mine = (newBlock) => {
+    if (newBlock.index === 0) {
+        // the genesis case
+        newBlock.nonce = 0;
+        newBlock.hash = calculateHashForBlock(newBlock);
+        return newBlock;
+    }
+
+    let nonce = 0;
+    let guess = target+1;
+    let hash;
+
+    while (guess > target) {
+        nonce++;
+        newBlock.nonce = nonce;
+
+        hash = calculateHashForBlock(newBlock);
+        guess = getGuess(hash);
+    }
+
+    newBlock.hash = hash;
+
+    return newBlock;
+};
+
+var checkNonce = (newBlock) => {
+    if (newBlock.index === 0) {
+        // the genesis case
+        if (newBlock.nonce !== 0) {
+            return false;
+        }
+
+        if (newBlock.hash !== calculateHashForBlock(newBlock)) {
+            return false
+        }
+
+        return true;
+    }
+
+    let guess = getGuess(newBlock.hash);
+    if (guess > target) {
+        return false;
+    }
+
+    if (newBlock.hash !== calculateHashForBlock(newBlock)) {
+        return false;
+    }
+
+    return true;
 };
 
 class Block {
@@ -32,6 +91,10 @@ class Block {
 
         this.index = index;
         this.data = data;
+
+        let block = mine(this);
+        this.hash = block.hash;
+        this.nonce = block.nonce;
     }
 }
 
@@ -62,7 +125,7 @@ var initHttpServer = () => {
 
     app.get('/blocks', (req, res) => res.send(JSON.stringify(blockchain)));
     app.post('/mineBlock', (req, res) => {
-        var newBlock = generateNextBlock(req.body.data);
+        var newBlock = generateNextBlock(req.body.data);;
         addBlock(newBlock);
         broadcast(responseLatestMsg());
         console.log('block added: ' + JSON.stringify(newBlock));
@@ -138,6 +201,11 @@ var isValidNewBlock = (newBlock, previousBlock) => {
     if (calculateHashForBlock(newBlock) !== newBlock.hash) {
         console.log(typeof (newBlock.hash) + ' ' + typeof calculateHashForBlock(newBlock));
         console.log('invalid hash: ' + calculateHashForBlock(newBlock) + ' ' + newBlock.hash);
+        return false;
+    }
+
+    if (!checkNonce(newBlock)) {
+        console.log('invalid nonce(guess): ' + getGuess(newBlock.hash) + ' ' + target);
         return false;
     }
     return true;
