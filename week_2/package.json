@@ -1,0 +1,20 @@
+{
+  "name": "week2",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "body-parser": "^1.15.2",
+    "crypto-js": "^3.1.6",
+    "express": "^4.16.3",
+    "ws": "^1.1.0"
+  },
+  "engines": {
+    "node": ">=4.3.2"
+  },
+  "author": "Eugene Danilenko",
+  "license": "ISC"
+}
