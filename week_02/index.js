@@ -9,34 +9,41 @@ var p2p_port = process.env.P2P_PORT || 6001;
 var initialPeers = process.env.PEERS ? process.env.PEERS.split(',') : [];
 
 var calculateHashForBlock = (block) => {
-    return calculateHash(block.index, block.previousHash, block.timestamp, block.data, block.nonce);
+    return calculateHash(block.index, block.previousHash, block.timestamp, block.data, block.difficulty, block.nonce);
 };
 
-var calculateHash = (index, previousHash, timestamp, data, nonce) => {
-    return CryptoJS.SHA256(index + previousHash + timestamp + data + nonce).toString();
+var calculateHash = (index, previousHash, timestamp, data, difficulty, nonce) => {
+    return CryptoJS.SHA256(index + previousHash + timestamp + data + difficulty + nonce).toString();
 };
 
 // can be used to calculate a difficulty
-var throttle = 10000000000;
-var target = Math.floor(Math.pow(2, 64)/throttle);
+var difficulty = 10;
+var throttle = Math.floor(Math.pow(10, difficulty));
+var target = () => Math.floor(Math.pow(2, 64)/throttle);
+var estimatedTime = 5*1000; // in milliseconds
 
-var getGuess = (hash) => {
-    return parseInt(hash.substring(0, 12), 16)
-};
+var getGuess = (hash) => parseInt(hash.substring(0, 12), 16);
 
-var mine = (newBlock) => {
+var mine = (newBlock, previousBlock) => {
     if (newBlock.index === 0) {
         // the genesis case
         newBlock.nonce = 0;
         newBlock.hash = calculateHashForBlock(newBlock);
+        newBlock.difficulty = difficulty;
         return newBlock;
     }
 
     let nonce = 0;
-    let guess = target+1;
+    let blockTarget = target();
+    let guess = blockTarget+1;
     let hash;
 
-    while (guess > target) {
+    let start  = new Date();
+    let previousBlockStarted = new Date(previousBlock.timestamp * 1000);
+    let timePassed = start.getTime() - previousBlockStarted.getTime();
+    newBlock.difficulty = calculateDifficulty(timePassed);
+
+    while (guess > blockTarget) {
         nonce++;
         newBlock.nonce = nonce;
 
@@ -44,9 +51,34 @@ var mine = (newBlock) => {
         guess = getGuess(hash);
     }
 
-    newBlock.hash = hash;
+    let end  = new Date();
+    let miningTime = timePassed + end.getTime() - start.getTime();
+    miningTime = Math.floor(miningTime/1000);
+    console.log('Mining finished in', miningTime, 's. New difficulty:', difficulty);
 
+    newBlock.hash = hash;
     return newBlock;
+};
+
+var calculateDifficulty = (miningTime) => {
+    if (miningTime > estimatedTime) {
+        // difficulty is too big, so we should decrease it
+        let newDifficulty = difficulty-1;
+        if (newDifficulty >= 1) {
+             difficulty = newDifficulty;
+        }
+        return difficulty;
+    }
+
+    if (miningTime < estimatedTime) {
+        // difficulty is too low, so we should increase it
+        let newDifficulty = difficulty+1;
+        if (newDifficulty <= 20) {
+            difficulty = newDifficulty;
+        }
+    }
+
+    return difficulty;
 };
 
 var checkNonce = (newBlock) => {
@@ -77,24 +109,21 @@ var checkNonce = (newBlock) => {
 
 class Block {
     constructor(index = 0, data = "", previousBlock = null) {
+        this.timestamp = new Date().getTime() / 1000;
+
         if (previousBlock) {
             this.previousHash = previousBlock.hash.toString();
         }
-
-        let timestamp = 0;
-        if (index !== 0) {
-            timestamp = new Date().getTime() / 1000;
-        }
-        this.timestamp = timestamp;
 
         this.hash = calculateHashForBlock(this);
 
         this.index = index;
         this.data = data;
 
-        let block = mine(this);
+        let block = mine(this, previousBlock);
         this.hash = block.hash;
         this.nonce = block.nonce;
+        this.difficulty = block.difficulty;
     }
 }
 
@@ -128,7 +157,7 @@ var initHttpServer = () => {
         var newBlock = generateNextBlock(req.body.data);;
         addBlock(newBlock);
         broadcast(responseLatestMsg());
-        console.log('block added: ' + JSON.stringify(newBlock));
+        console.log('block added: ' + JSON.stringify(newBlock) + "\n");
         res.send();
     });
     app.get('/peers', (req, res) => {
@@ -184,6 +213,7 @@ var initErrorHandler = (ws) => {
 var addBlock = (newBlock) => {
     if (isValidNewBlock(newBlock, getLatestBlock())) {
         blockchain.push(newBlock);
+        difficulty = newBlock.difficulty;
     }
 };
 
@@ -195,6 +225,11 @@ var isValidNewBlock = (newBlock, previousBlock) => {
 
     if (previousBlock.hash !== newBlock.previousHash) {
         console.log('invalid the previous hash');
+        return false;
+    }
+
+    if (previousBlock.difficulty < 0) {
+        console.log('invalid difficulty');
         return false;
     }
 
@@ -247,6 +282,7 @@ var replaceChain = (newBlocks) => {
     if (isValidChain(newBlocks) && newBlocks.length > blockchain.length) {
         console.log('Received blockchain is valid. Replacing current blockchain with received blockchain');
         blockchain = newBlocks;
+        difficulty = newBlocks[newBlocks.length-1].difficulty;
         broadcast(responseLatestMsg());
     } else {
         console.log('Received blockchain invalid');
