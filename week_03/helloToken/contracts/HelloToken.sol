@@ -1,10 +1,13 @@
 pragma solidity ^0.4.0;
 
 import "zeppelin-solidity/contracts/token/ERC20/StandardToken.sol";
+import "zeppelin-solidity/contracts/token/ERC20/DetailedERC20.sol";
 
-contract HelloToken is StandardToken {
+contract HelloToken is StandardToken, DetailedERC20 {
 
-    constructor() public {
+    constructor() public
+        DetailedERC20("my test token", "MTT", 18)
+    {
         balances[msg.sender] = 1000 ether;
         totalSupply_ = balances[msg.sender];
         emit Transfer(address(0), msg.sender, totalSupply_);
