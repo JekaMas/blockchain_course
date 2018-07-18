@@ -1,0 +1,17 @@
+{
+  "name": "some-contract",
+  "version": "0.0.1",
+  "scripts": {},
+  "author": "anonymous",
+  "license": "Apache-2.0",
+  "dependencies": {
+    "babel-polyfill": "^6.26.0",
+    "babel-preset-es2015": "^6.24.1",
+    "babel-preset-stage-2": "^6.24.1",
+    "babel-preset-stage-3": "^6.24.1",
+    "babel-register": "^6.26.0",
+    "ganache-cli": "^6.1.6",
+    "truffle": "^4.1.13",
+    "zeppelin-solidity": "^1.10.0"
+  }
+}
