@@ -11,6 +11,7 @@ contract BonusToken is MintableToken, DetailedERC20 {
         balances[msg.sender] = prefund;
         totalSupply_ = balances[msg.sender];
         emit Transfer(address(0), msg.sender, totalSupply_);
+
     }
 
     event NewOrder(address indexed owner, uint id, uint256 amount, uint toDate);
@@ -62,18 +63,10 @@ contract BonusToken is MintableToken, DetailedERC20 {
         return balanceOf(who)-balancesFrozen[who];
     }
 
-    modifier canPay(address owner, uint256 _price) {
-        require((balanceOf(owner)-balancesFrozen[owner]) >= _price);
+    modifier canVote(address owner) {
+        require();
         _;
     }
 
-    struct order {
-        bool complete;
-        address owner;
-        uint toDate;
-        uint256 price;
-    }
-    order[] orders;
-
-    mapping(address => uint256) balancesFrozen;
+    mapping(address => bytes32) votes;
 }
