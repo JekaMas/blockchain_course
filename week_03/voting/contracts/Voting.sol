@@ -1,72 +1,86 @@
 pragma solidity ^0.4.0;
 
-import "zeppelin-solidity/contracts/token/ERC20/MintableToken.sol";
-import "zeppelin-solidity/contracts/token/ERC20/DetailedERC20.sol";
+contract BonusToken {
+    uint private startVoting;
+    uint private startReveal;
+    uint private terminationDate;
 
-contract BonusToken is MintableToken, DetailedERC20 {
+    enum VoteType {CON, PRO}
 
-    constructor(uint prefund) public
-    DetailedERC20("CustomerBonusToken", "CBT", 18)
+    constructor(uint _startVoting, uint _startReveal, uint _terminationDate) public
     {
-        balances[msg.sender] = prefund;
-        totalSupply_ = balances[msg.sender];
-        emit Transfer(address(0), msg.sender, totalSupply_);
+        require(_startReveal >= now);
+        require(_startVoting < _startReveal);
+        require(_startReveal < _terminationDate);
 
+        startVoting = _startVoting;
+        startReveal = _startReveal;
+        terminationDate = _terminationDate;
     }
 
-    event NewOrder(address indexed owner, uint id, uint256 amount, uint toDate);
-    event NewXXX(address indexed owner, order o, bool res);
+    function vote(bytes32 _vote) public canVote(msg.sender) returns (bool) {
 
-    function transfer(address _to, uint256 _value) public canPay(msg.sender, _value) returns (bool) {
-        return super.transfer(_to, _value);
-    }
-
-    function transferFrom(address _from, address _to, uint256 _value) public canPay(_from, _value) returns (bool) {
-        return super.transferFrom(_from, _to, _value);
-    }
-
-    function makeOrder(uint256 _price, uint _toDate) public canPay(msg.sender, _price) returns (bool) {
-        require(_toDate > now);
-
-        uint _orderID = orders.push(order(false, msg.sender, _toDate, _price))-1;
-        balancesFrozen[msg.sender] += _price;
-
-        emit NewOrder(msg.sender, _orderID, _price, _toDate);
+        mappedVotes[msg.sender] = votes.push(_vote) - 1;
 
         return true;
     }
 
-    function orderComplete(uint _orderID) public returns (bool) {
-        // check is owner
-        order storage userOrder = orders[_orderID];
-        require(!userOrder.complete);
+    function reveal(bytes32 _secret) public canReveal(msg.sender) returns (bool) {
 
-        // check signatures of user and seller
-        // check is the order belongs to the user
+        uint256 _secretIdx = secrets.push(_secret) - 1;
+        mappedSecrets[msg.sender] = _secretIdx;
+        mappedSecretIdx[_secretIdx] = msg.sender;
 
-        userOrder.complete = true;
-        balancesFrozen[msg.sender] -= userOrder.price;
+        return true;
+    }
 
-        //bonus
-        //todo: make `1 hours` constant changeable by the contract owner
-        if ((userOrder.toDate+1 hours) >= now) {
-            //todo: make bonus percent constant changeable by the contract owner
-            transfer(userOrder.owner, userOrder.price/10);
-        } else {
-            transferFrom(msg.sender, owner, userOrder.price/10);
+    function calculate() public view returns (uint256, uint256) {
+        uint256 _pros;
+        uint256 _cons;
+        address _userAddress;
+        bytes32 _userSecret;
+        bytes32 _userVote;
+
+        for (uint _secretIdx = 0; _secretIdx < secrets.length; _secretIdx++) {
+            _userAddress = mappedSecretIdx[_secretIdx];
+            _userVote = votes[mappedVotes[_userAddress]];
+            _userSecret = secrets[_secretIdx];
+
+            if (keccak256(abi.encodePacked(bytes32(uint(VoteType.CON)), _userSecret)) == _userVote) {
+                _cons++;
+                continue;
+            }
+            if (keccak256(abi.encodePacked(bytes32(uint(VoteType.PRO)), _userSecret)) == _userVote) {
+                _pros++;
+                continue;
+            }
         }
 
-        return true;
-    }
-
-    function availableBalanceOf(address who) public view returns (uint256) {
-        return balanceOf(who)-balancesFrozen[who];
+        return (_cons, _pros);
     }
 
     modifier canVote(address owner) {
-        require();
+        require(now >= startVoting);
+        require(now < startReveal);
+
+        require(votes[mappedVotes[owner]] == 0);
         _;
     }
 
-    mapping(address => bytes32) votes;
+    modifier canReveal(address owner) {
+        require(now >= startReveal);
+        require(now < terminationDate);
+
+        require(votes.length > 0);
+        require(votes[mappedVotes[owner]] > 0);
+
+        require(secrets[mappedSecrets[owner]] == 0);
+        _;
+    }
+
+    mapping (address => uint) mappedVotes;
+    mapping (address => uint) mappedSecrets;
+    mapping (uint => address) mappedSecretIdx;
+    bytes32[] votes;
+    bytes32[] secrets;
 }

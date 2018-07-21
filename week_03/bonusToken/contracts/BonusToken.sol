@@ -14,7 +14,6 @@ contract BonusToken is MintableToken, DetailedERC20 {
     }
 
     event NewOrder(address indexed owner, uint id, uint256 amount, uint toDate);
-    event NewXXX(address indexed owner, order o, bool res);
 
     function transfer(address _to, uint256 _value) public canPay(msg.sender, _value) returns (bool) {
         return super.transfer(_to, _value);
