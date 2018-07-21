@@ -1,6 +1,6 @@
 pragma solidity ^0.4.0;
 
-contract BonusToken {
+contract Voting {
     uint private startVoting;
     uint private startReveal;
     uint private terminationDate;
