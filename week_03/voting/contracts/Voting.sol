@@ -59,28 +59,34 @@ contract Voting {
         return (_cons, _pros);
     }
 
-    modifier canVote(address owner) {
+    function getVote(uint _voteType, bytes32 _userSecret) pure public returns (bytes32) {
+        require(uint(VoteType.CON) == _voteType || uint(VoteType.PRO) == _voteType);
+
+        return keccak256(abi.encodePacked(bytes32(_voteType), _userSecret));
+    }
+
+    modifier canVote(address _owner) {
         require(now >= startVoting);
         require(now < startReveal);
 
-        require(votes[mappedVotes[owner]] == 0);
+        require(votes.length == 0 || votes[mappedVotes[_owner]] == "");
         _;
     }
 
-    modifier canReveal(address owner) {
+    modifier canReveal(address _owner) {
         require(now >= startReveal);
         require(now < terminationDate);
 
         require(votes.length > 0);
-        require(votes[mappedVotes[owner]] > 0);
+        require(votes[mappedVotes[_owner]] != "");
 
-        require(secrets[mappedSecrets[owner]] == 0);
+        require(secrets.length == 0 || secrets[mappedSecrets[_owner]] == "");
         _;
     }
 
-    mapping (address => uint) mappedVotes;
-    mapping (address => uint) mappedSecrets;
-    mapping (uint => address) mappedSecretIdx;
-    bytes32[] votes;
-    bytes32[] secrets;
+    mapping (address => uint) internal mappedVotes;
+    mapping (address => uint) internal mappedSecrets;
+    mapping (uint => address) internal mappedSecretIdx;
+    bytes32[] internal votes;
+    bytes32[] internal secrets;
 }

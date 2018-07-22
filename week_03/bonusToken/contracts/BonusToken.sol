@@ -26,6 +26,7 @@ contract BonusToken is MintableToken, DetailedERC20 {
     function makeOrder(uint256 _price, uint _toDate) public canPay(msg.sender, _price) returns (bool) {
         require(_toDate > now);
 
+        //fixme: я пишу новые и новые данные в чейн и никогда не очищаю их. это верный подход?
         uint _orderID = orders.push(order(false, msg.sender, _toDate, _price))-1;
         balancesFrozen[msg.sender] += _price;
 

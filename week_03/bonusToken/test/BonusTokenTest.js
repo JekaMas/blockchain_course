@@ -49,7 +49,7 @@ contract('BonusTokenTest', function(accounts) {
             if (!error) {
                 //then
                 await token.orderComplete(result.args.id, {from: accounts[0]});
-                console.log("event", result.args, await token.balanceOf(accounts[1]))
+                console.log("event", result.args, await token.balanceOf(accounts[1]));
 
                 assertBigNumberEqual(await token.balanceOf(accounts[1]), 11);
             }
@@ -69,7 +69,7 @@ contract('BonusTokenTest', function(accounts) {
             if (!error) {
                 //then
                 setTimeout(async function() {
-                    console.log("event", result.args)
+                    console.log("event", result.args);
                     await token.orderComplete(result.args.id, {from: accounts[0]});
 
                     assertBigNumberEqual(await token.balanceOf(accounts[1]), 9);
