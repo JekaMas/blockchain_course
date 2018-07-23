@@ -20,7 +20,7 @@ contract Voting {
 
     function vote(bytes32 _vote) public canVote(msg.sender) returns (bool) {
 
-        mappedVotes[msg.sender] = votes.push(_vote) - 1;
+        mappedVotes[msg.sender] = index(votes.push(_vote) - 1, true);
 
         return true;
     }
@@ -28,7 +28,7 @@ contract Voting {
     function reveal(bytes32 _secret) public canReveal(msg.sender) returns (bool) {
 
         uint256 _secretIdx = secrets.push(_secret) - 1;
-        mappedSecrets[msg.sender] = _secretIdx;
+        mappedSecrets[msg.sender] = index(_secretIdx, true);
         mappedSecretIdx[_secretIdx] = msg.sender;
 
         return true;
@@ -43,7 +43,7 @@ contract Voting {
 
         for (uint _secretIdx = 0; _secretIdx < secrets.length; _secretIdx++) {
             _userAddress = mappedSecretIdx[_secretIdx];
-            _userVote = votes[mappedVotes[_userAddress]];
+            _userVote = votes[mappedVotes[_userAddress].idx];
             _userSecret = secrets[_secretIdx];
 
             if (keccak256(abi.encodePacked(bytes32(uint(VoteType.CON)), _userSecret)) == _userVote) {
@@ -69,7 +69,10 @@ contract Voting {
         require(now >= startVoting);
         require(now < startReveal);
 
-        require(votes.length == 0 || votes[mappedVotes[_owner]] == "");
+        if (votes.length > 0) {
+            require(mappedVotes[_owner].isPresent == false);
+        }
+
         _;
     }
 
@@ -78,14 +81,22 @@ contract Voting {
         require(now < terminationDate);
 
         require(votes.length > 0);
-        require(votes[mappedVotes[_owner]] != "");
+        require(mappedVotes[_owner].isPresent == true);
+        require(votes[mappedVotes[_owner].idx] != "");
 
-        require(secrets.length == 0 || secrets[mappedSecrets[_owner]] == "");
+        if (secrets.length > 0) {
+            require(mappedSecrets[_owner].isPresent == false);
+        }
         _;
     }
 
-    mapping (address => uint) internal mappedVotes;
-    mapping (address => uint) internal mappedSecrets;
+    struct index {
+        uint idx;
+        bool isPresent;
+    }
+
+    mapping (address => index) internal mappedVotes;
+    mapping (address => index) internal mappedSecrets;
     mapping (uint => address) internal mappedSecretIdx;
     bytes32[] internal votes;
     bytes32[] internal secrets;
