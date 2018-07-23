@@ -5,6 +5,7 @@ import expectThrow from './helpers/expectThrow';
 
 const voting = artifacts.require('Voting.sol');
 
+// fixme: remove sleeps as a sync mechanism
 contract('VotingTest', function(accounts) {
 
     it('test construction', async function() {
@@ -16,18 +17,18 @@ contract('VotingTest', function(accounts) {
     it('test voting correct', async function() {
         //given
         let currect = now();
-        const votingContract = await voting.new(currect, currect+1, currect+2);
+        const votingContract = await voting.new(currect, currect+2, currect+4);
 
         //when
         let secret = "asdfghjkl";
         let voteHash = await votingContract.getVote(1, secret);
         await votingContract.vote(voteHash, {from: accounts[1]});
 
-        await sleep(1000);
+        await sleep(2000);
         await votingContract.reveal(secret, {from: accounts[1]});
 
         //then
-        await sleep(1000);
+        await sleep(2000);
 
         let cons;
         let pros;
@@ -39,7 +40,7 @@ contract('VotingTest', function(accounts) {
     it('test voting. double voting', async function() {
         //given
         let currect = now();
-        const votingContract = await voting.new(currect, currect+1, currect+2);
+        const votingContract = await voting.new(currect, currect+2, currect+4);
 
         //when
         let secret = "asdfghjkl";
@@ -51,7 +52,7 @@ contract('VotingTest', function(accounts) {
     it('test voting. double voting. same secret, different votes', async function() {
         //given
         let currect = now();
-        const votingContract = await voting.new(currect, currect+1, currect+2);
+        const votingContract = await voting.new(currect, currect+2, currect+4);
 
         //when
         let secret = "asdfghjkl";
@@ -65,7 +66,7 @@ contract('VotingTest', function(accounts) {
     it('test voting. many votes', async function() {
         //given
         let currect = now();
-        const votingContract = await voting.new(currect, currect+1, currect+2);
+        const votingContract = await voting.new(currect, currect+2, currect+4);
 
         //when
         let secret = "asdfghjkl";
@@ -84,106 +85,6 @@ contract('VotingTest', function(accounts) {
         let voteHash = await votingContract.getVote(1, secret0);
         await sleep(1000);
         await expectThrow(votingContract.vote(voteHash, {from: accounts[0]}));
-    });
-
-    it('test voting. double reveal', async function() {
-        //given
-        let currect = now();
-        const votingContract = await voting.new(currect, currect+1, currect+2);
-
-        //when
-        let secret = "asdfghjkl";
-        let voteHash = await votingContract.getVote(1, secret);
-        await votingContract.vote(voteHash, {from: accounts[1]});
-
-        await sleep(1000);
-        await votingContract.reveal(secret, {from: accounts[1]});
-
-        await expectThrow(votingContract.reveal(secret, {from: accounts[1]}));
-    });
-
-    it('test voting. wrong reveal sender', async function() {
-        //given
-        let currect = now();
-        const votingContract = await voting.new(currect, currect+1, currect+2);
-
-        //when
-        let secret = "asdfghjkl";
-        let voteHash = await votingContract.getVote(1, secret);
-        await votingContract.vote(voteHash, {from: accounts[1]});
-
-        await sleep(1000);
-        await expectThrow(votingContract.reveal(secret, {from: accounts[0]}));
-    });
-
-    it('test reveal. too late', async function() {
-        //given
-        let currect = now();
-        const votingContract = await voting.new(currect, currect+1, currect+2);
-
-        //when
-        let secret = "asdfghjkl";
-        let voteHash = await votingContract.getVote(1, secret);
-        await votingContract.vote(voteHash, {from: accounts[1]});
-
-        await sleep(2000);
-        await expectThrow(votingContract.reveal(secret, {from: accounts[1]}));
-    });
-
-    it('test voting. many reveals', async function() {
-        //given
-        let currect = now();
-        const votingContract = await voting.new(currect, currect+1, currect+2);
-
-        //when
-        let secret = "asdfghjkl";
-        let voteHash = await votingContract.getVote(1, secret);
-        await votingContract.vote(voteHash, {from: accounts[1]});
-
-        await sleep(1000);
-        await votingContract.reveal(secret, {from: accounts[1]});
-
-        await expectThrow(votingContract.reveal(secret, {from: accounts[1]}));
-    });
-
-    it('test voting. reveal without vote', async function() {
-        //given
-        let currect = now();
-        const votingContract = await voting.new(currect, currect+1, currect+2);
-
-        //when
-        let secret = "asdfghjkl";
-
-        await sleep(1000);
-        await expectThrow(votingContract.reveal(secret, {from: accounts[1]}));
-    });
-
-    it('test voting. double voting. same secret, different votes', async function() {
-        //given
-        let currect = now();
-        const votingContract = await voting.new(currect, currect+1, currect+2);
-
-        //when
-        let secret = "asdfghjkl";
-        let voteHash = await votingContract.getVote(1, secret);
-        await votingContract.vote(voteHash, {from: accounts[1]});
-
-        voteHash = await votingContract.getVote(0, secret);
-        await expectThrow(votingContract.vote(voteHash, {from: accounts[1]}));
-    });
-
-    it('test voting. too late', async function() {
-        //given
-        let currect = now();
-        const votingContract = await voting.new(currect, currect+1, currect+2);
-
-        //when
-        let secret = "asdfghjkl";
-        let voteHash = await votingContract.getVote(1, secret);
-        await votingContract.vote(voteHash, {from: accounts[1]});
-
-
-        await expectThrow(votingContract.vote(voteHash, {from: accounts[1]}));
     });
 
     it('test voting. many votes', async function() {
@@ -201,7 +102,7 @@ contract('VotingTest', function(accounts) {
     it('test voting. many votes. different votes', async function() {
         //given
         let currect = now();
-        const votingContract = await voting.new(currect, currect+1, currect+2);
+        const votingContract = await voting.new(currect, currect+2, currect+4);
 
         //when
         let secret0 = "asdfghjkl";
@@ -212,12 +113,12 @@ contract('VotingTest', function(accounts) {
         let voteHash1 = await votingContract.getVote(0, secret1);
         await votingContract.vote(voteHash1, {from: accounts[1]});
 
-        await sleep(1000);
+        await sleep(2000);
         await votingContract.reveal(secret0, {from: accounts[0]});
         await votingContract.reveal(secret1, {from: accounts[1]});
 
         //then
-        await sleep(1000);
+        await sleep(2000);
 
         let cons;
         let pros;
@@ -229,7 +130,7 @@ contract('VotingTest', function(accounts) {
     it('test voting. many votes. different votes. without one reveal', async function() {
         //given
         let currect = now();
-        const votingContract = await voting.new(currect, currect+1, currect+2);
+        const votingContract = await voting.new(currect, currect+2, currect+4);
 
         //when
         let secret0 = "asdfghjkl";
@@ -240,17 +141,73 @@ contract('VotingTest', function(accounts) {
         let voteHash1 = await votingContract.getVote(0, secret1);
         await votingContract.vote(voteHash1, {from: accounts[1]});
 
-        await sleep(1000);
+        await sleep(2000);
         await votingContract.reveal(secret0, {from: accounts[0]});
 
         //then
-        await sleep(1000);
+        await sleep(2000);
 
         let cons;
         let pros;
         [cons, pros] = await votingContract.calculate();
         assertBigNumberEqual(cons, 0);
         assertBigNumberEqual(pros, 1);
+    });
+
+    it('test reveal. double reveal', async function() {
+        //given
+        let currect = now();
+        const votingContract = await voting.new(currect, currect+2, currect+4);
+
+        //when
+        let secret = "asdfghjkl";
+        let voteHash = await votingContract.getVote(1, secret);
+        await votingContract.vote(voteHash, {from: accounts[1]});
+
+        await sleep(2000);
+        await votingContract.reveal(secret, {from: accounts[1]});
+
+        await expectThrow(votingContract.reveal(secret, {from: accounts[1]}));
+    });
+
+    it('test reveal. wrong reveal sender', async function() {
+        //given
+        let currect = now();
+        const votingContract = await voting.new(currect, currect+2, currect+4);
+
+        //when
+        let secret = "asdfghjkl";
+        let voteHash = await votingContract.getVote(1, secret);
+        await votingContract.vote(voteHash, {from: accounts[1]});
+
+        await sleep(2000);
+        await expectThrow(votingContract.reveal(secret, {from: accounts[0]}));
+    });
+
+    it('test reveal. too late', async function() {
+        //given
+        let currect = now();
+        const votingContract = await voting.new(currect, currect+1, currect+2);
+
+        //when
+        let secret = "asdfghjkl";
+        let voteHash = await votingContract.getVote(1, secret);
+        await votingContract.vote(voteHash, {from: accounts[1]});
+
+        await sleep(2000);
+        await expectThrow(votingContract.reveal(secret, {from: accounts[1]}));
+    });
+
+    it('test reveal. reveal without vote', async function() {
+        //given
+        let currect = now();
+        const votingContract = await voting.new(currect, currect+1, currect+2);
+
+        //when
+        let secret = "asdfghjkl";
+
+        await sleep(1000);
+        await expectThrow(votingContract.reveal(secret, {from: accounts[1]}));
     });
 });
 
