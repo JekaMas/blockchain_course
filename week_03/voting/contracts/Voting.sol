@@ -16,11 +16,15 @@ contract Voting {
         startVoting = _startVoting;
         startReveal = _startReveal;
         terminationDate = _terminationDate;
+
+        // reserve 0 indexes as 'not defined'
+        votes.push("");
+        secrets.push("");
     }
 
     function vote(bytes32 _vote) public canVote(msg.sender) returns (bool) {
 
-        mappedVotes[msg.sender] = index(votes.push(_vote) - 1, true);
+        mappedVotes[msg.sender] = votes.push(_vote) - 1;
 
         return true;
     }
@@ -28,7 +32,7 @@ contract Voting {
     function reveal(bytes32 _secret) public canReveal(msg.sender) returns (bool) {
 
         uint256 _secretIdx = secrets.push(_secret) - 1;
-        mappedSecrets[msg.sender] = index(_secretIdx, true);
+        mappedSecrets[msg.sender] = _secretIdx;
         mappedSecretIdx[_secretIdx] = msg.sender;
 
         return true;
@@ -43,7 +47,7 @@ contract Voting {
 
         for (uint _secretIdx = 0; _secretIdx < secrets.length; _secretIdx++) {
             _userAddress = mappedSecretIdx[_secretIdx];
-            _userVote = votes[mappedVotes[_userAddress].idx];
+            _userVote = votes[mappedVotes[_userAddress]];
             _userSecret = secrets[_secretIdx];
 
             if (keccak256(abi.encodePacked(bytes32(uint(VoteType.CON)), _userSecret)) == _userVote) {
@@ -69,9 +73,7 @@ contract Voting {
         require(now >= startVoting);
         require(now < startReveal);
 
-        if (votes.length > 0) {
-            require(mappedVotes[_owner].isPresent == false);
-        }
+        require(mappedVotes[_owner] == 0);
 
         _;
     }
@@ -80,23 +82,14 @@ contract Voting {
         require(now >= startReveal);
         require(now < terminationDate);
 
-        require(votes.length > 0);
-        require(mappedVotes[_owner].isPresent == true);
-        require(votes[mappedVotes[_owner].idx] != "");
+        require(votes[mappedVotes[_owner]] != "");
 
-        if (secrets.length > 0) {
-            require(mappedSecrets[_owner].isPresent == false);
-        }
+        require(mappedSecrets[_owner] == 0);
         _;
     }
 
-    struct index {
-        uint idx;
-        bool isPresent;
-    }
-
-    mapping (address => index) internal mappedVotes;
-    mapping (address => index) internal mappedSecrets;
+    mapping (address => uint) internal mappedVotes;
+    mapping (address => uint) internal mappedSecrets;
     mapping (uint => address) internal mappedSecretIdx;
     bytes32[] internal votes;
     bytes32[] internal secrets;
